@@ -13,10 +13,11 @@ import org.slf4j.LoggerFactory;
 import com.drkiettran.text.util.CommonUtils;
 
 public class WebHelper {
+	private static final Logger LOGGER = LoggerFactory.getLogger(WebHelper.class);
+
 	public static final String XPATH_ENTRY_CONTENT = "//div[contains(@class,'entry-content')]";
 	private static final String XPATH_CONTENT = "//div[@id='content']";
 	public static final String TRANSLATED_TEXT = "translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz')";
-	private static final Logger LOGGER = LoggerFactory.getLogger(WebHelper.class);
 
 	private static final String XYZ_CHARS = "xyz";
 	private static final String THE_NYSCPA_TERM_WEBSITE = "https://www.nysscpa.org/professional-resources/accounting-terminology-guide";
@@ -35,7 +36,7 @@ public class WebHelper {
 			List<WebElement> terms = filterEmptyWebElements(section.findElements(By.xpath("//h3")));
 			terms = driver.findElements(By.xpath(".//*"));
 			for (WebElement term : terms) {
-				System.out.println(term.getTagName() + ":" + term.getText());
+				LOGGER.info("{} : {}", term.getTagName(), term.getText());
 			}
 			terms = filterEmptyWebElements(section.findElements(By.xpath("//h3")));
 			for (WebElement term : terms) {
@@ -61,6 +62,7 @@ public class WebHelper {
 
 		}
 
+		closeDriver(driver);
 		return definedTerms;
 	}
 
@@ -187,6 +189,9 @@ public class WebHelper {
 			termsWithUrls.add(a.getText() + ": " + a.getAttribute("href"));
 			LOGGER.info("*** {} ***", termsWithUrls.get(termsWithUrls.size() - 1));
 		}
+
+		closeDriver(driver);
+
 		return termsWithUrls;
 	}
 
@@ -211,4 +216,115 @@ public class WebHelper {
 		return termsWithUrls;
 	}
 
+	private static final String THE_FREE_DICTIONARY_WEBSITE = "https://www.thefreedictionary.com/";
+	private static final String XPATH_SEARCH_TEXT = "//input[@type='search']";
+	private static final String XPATH_SEARCH_BUTTON = "//input[@type='submit' and @value='Search']";
+	private static final String XPATH_BASIC_DEFINITION = "//div[@class='pseg']";
+	private static final String XPATH_SINGLE_BASIC_DEFINITION = "//div[@class='ds-single']";
+	private static final String XPATH_NOT_FOUND_MAIN_TEXT = "//div[@id='MainTxt']";
+
+	public static String getDefinitionForWord(String word) {
+		WebDriver driver = new HtmlUnitDriver();
+		driver.get(THE_FREE_DICTIONARY_WEBSITE);
+		driver.findElement(By.xpath(XPATH_SEARCH_TEXT)).sendKeys(word);
+		driver.findElement(By.xpath(XPATH_SEARCH_BUTTON)).click();
+		List<WebElement> defElmts = driver.findElements(By.xpath(XPATH_BASIC_DEFINITION));
+		String def = "*** no definition ***";
+
+		if (defElmts.isEmpty()) {
+			defElmts = driver.findElements(By.xpath(XPATH_SINGLE_BASIC_DEFINITION));
+			if (!defElmts.isEmpty()) {
+				def = "<a href=\"" + driver.getCurrentUrl() + "\">" + driver.getCurrentUrl() + "</a><br>";
+				def += defElmts.get(0).getText();
+			} else {
+				defElmts = driver.findElements(By.xpath(XPATH_NOT_FOUND_MAIN_TEXT));
+				if (!defElmts.isEmpty()) {
+					def = "<a href=\"" + driver.getCurrentUrl() + "\">" + driver.getCurrentUrl() + "</a><br>";
+					def += defElmts.get(0).getText();
+				}
+			}
+		} else {
+			def = "<a href=\"" + driver.getCurrentUrl() + "\">" + driver.getCurrentUrl() + "</a><br>";
+			def += defElmts.get(0).getText();
+		}
+		def = def.replaceAll("\n", "<br>");
+		def = def.replaceAll("1.", "<br>1.");
+		StringBuilder sb = new StringBuilder(String.format("<b>%s</b>: <br>", word)).append(def);
+
+		closeDriver(driver);
+		return sb.toString();
+	}
+
+	public static final String IT_DICTIONARY_WEBSITE = "https://www.computer-dictionary-online.org";
+	public static final String IT_DICTIONARY_SEARCH_TEMPLATE = "/definitions-%c/%s.html";
+	public static final String IT_DICTIONARY_CONTENT_XPATH = "//div[@id='content']//p";
+
+	public static String getDefinitionForWordInCS(String term) {
+		StringBuilder sb = new StringBuilder();
+		WebDriver driver = new HtmlUnitDriver();
+		String searchUrl = IT_DICTIONARY_WEBSITE + IT_DICTIONARY_SEARCH_TEMPLATE;
+
+		driver.get(String.format(searchUrl, term.charAt(0), term.toLowerCase()));
+		List<WebElement> defElmts = driver.findElements(By.xpath(IT_DICTIONARY_CONTENT_XPATH));
+		String def = "*** no definition ***";
+		sb.append("<a href=\"").append(driver.getCurrentUrl()).append("\">");
+
+		if (!defElmts.isEmpty()) {
+			sb.append(driver.getCurrentUrl()).append("</a><br>");
+			for (WebElement defElmt : defElmts) {
+				sb.append(defElmt.getAttribute("innerHTML"));
+			}
+		} else {
+			sb.append(def);
+		}
+
+		closeDriver(driver);
+		return sb.toString();
+	}
+
+	private static void closeDriver(WebDriver driver) {
+		driver.quit();
+	}
+
+	public static final String FIN_DICTIONARY_WEBSITE = "https://www.investopedia.com";
+	public static final String FIN_DICTIONARY_SEARCH_TEMPLATE = "/terms/%c/%s.asp";
+	public static final String FIN_DICTIONARY_CONTENT_XPATH = "//div[@id='article-body_1-0']";
+
+	public static String getDefinitionForWordInFinance(String term) {
+		StringBuilder sb = new StringBuilder();
+		WebDriver driver = new HtmlUnitDriver();
+		String searchUrl = FIN_DICTIONARY_WEBSITE + FIN_DICTIONARY_SEARCH_TEMPLATE;
+
+		driver.get(String.format(searchUrl, term.charAt(0), term.toLowerCase()));
+		List<WebElement> defElmts = driver.findElements(By.xpath(FIN_DICTIONARY_CONTENT_XPATH));
+		String def = "*** no definition ***";
+		sb.append("<a href=\"").append(driver.getCurrentUrl()).append("\">");
+
+		if (!defElmts.isEmpty()) {
+			sb.append(driver.getCurrentUrl()).append("</a><br>");
+			for (WebElement defElmt : defElmts) {
+				LOGGER.info("*** RAW ***\n{}", defElmt.getAttribute("innerHTML"));
+				sb.append(defElmt.getAttribute("innerHTML"));
+			}
+		} else {
+			sb.append(def);
+		}
+
+		closeDriver(driver);
+		return removeHtmlComments(sb).toString();
+	}
+
+	private static StringBuilder removeHtmlComments(StringBuilder sb) {
+		// <!-- end: comp mntl-sc-block mntl-sc-block-heading -->
+		int startIndex = sb.indexOf("<!--");
+		while (startIndex > 0) {
+			int endIndex = sb.indexOf("-->");
+			if (endIndex < 0) {
+				break;
+			}
+			sb.delete(startIndex, endIndex + 3);
+			startIndex = sb.indexOf("<!--", startIndex + 1);
+		}
+		return sb;
+	}
 }

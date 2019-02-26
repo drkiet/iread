@@ -52,13 +52,8 @@ public class DictionaryFrame extends JFrame {
 		definitionPanel.setLargerText();
 	}
 
-	public void displayDefinition(String word) {
-		if (this.word.equalsIgnoreCase(word)) {
-			return;
-		}
-
-		this.word = word;
-		definitionPanel.displayDefinition(word.toLowerCase());
+	public void displayDefinition(String definition) {
+		definitionPanel.displayDefinition(definition);
 	}
 
 }

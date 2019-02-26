@@ -51,8 +51,8 @@ public class DictionaryPanel extends JPanel {
 		setBorder();
 	}
 
-	public void displayDefinition(String term) {
-		definition = CommonUtils.getDefinitionForWord(term);
+	public void displayDefinition(String definition) {
+		this.definition = definition;
 		displayDefinition();
 	}
 
