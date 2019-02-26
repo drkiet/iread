@@ -19,7 +19,8 @@ import javax.swing.border.Border;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.drkiet.ireader.main.ReaderListener.Command;
+import com.drkiet.ireader.handler.ReaderListener;
+import com.drkiet.ireader.handler.ReaderListener.Command;
 import com.drkiet.ireader.util.FileHelper;
 
 public class FormPanel extends JPanel {
@@ -156,6 +157,42 @@ public class FormPanel extends JPanel {
 		referenceCombo.setRenderer(renderer);
 		referenceCombo.setSelectedIndex(0);
 		renderer.setTooltips(bookNames);
+	}
+
+	public void setReaderListener(ReaderListener readerListener) {
+		this.readerListener = readerListener;
+	}
+
+	public void setFileName(String selectedFile) {
+		booksCombo.setSelectedItem(selectedFile);
+	}
+
+	public String getSearchText() {
+		return searchTextField.getText();
+	}
+
+	public int getSelectedPageNumber() {
+		if (!gotoTextField.getText().trim().isEmpty()) {
+			return Integer.valueOf(gotoTextField.getText());
+		}
+		return -1;
+	}
+
+	public String getSelectedBookName() {
+		return (String) booksCombo.getSelectedItem();
+	}
+
+	public boolean skipArticle() {
+		LOGGER.info("skip articles ... {}", skipArticleCheckBox.isSelected());
+		return skipArticleCheckBox.isSelected();
+	}
+
+	public String getSelectedReference() {
+		return (String) referenceCombo.getSelectedItem();
+	}
+
+	public void setSearchText(String searchText) {
+		searchTextField.setText(searchText);
 	}
 
 	private List<String> getReferenceNames() {
@@ -330,35 +367,4 @@ public class FormPanel extends JPanel {
 		add(gotoButton, gc);
 	}
 
-	public void setReaderListener(ReaderListener readerListener) {
-		this.readerListener = readerListener;
-	}
-
-	public void setFileName(String selectedFile) {
-		booksCombo.setSelectedItem(selectedFile);
-	}
-
-	public String getSearchText() {
-		return searchTextField.getText();
-	}
-
-	public int getGotoPageNo() {
-		if (!gotoTextField.getText().trim().isEmpty()) {
-			return Integer.valueOf(gotoTextField.getText());
-		}
-		return -1;
-	}
-
-	public String getSelectedBookName() {
-		return (String) booksCombo.getSelectedItem();
-	}
-
-	public boolean skipArticle() {
-		LOGGER.info("skip articles ... {}", skipArticleCheckBox.isSelected());
-		return skipArticleCheckBox.isSelected();
-	}
-
-	public String getSelectedReference() {
-		return (String) referenceCombo.getSelectedItem();
-	}
 }

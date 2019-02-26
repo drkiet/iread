@@ -2,42 +2,27 @@ package com.drkiet.ireader.main;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.Font;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.awt.event.MouseMotionListener;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Timer;
 
 import javax.swing.BorderFactory;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-import javax.swing.JTextPane;
-import javax.swing.SwingUtilities;
 import javax.swing.border.Border;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.DefaultCaret;
-import javax.swing.text.DefaultHighlighter;
-import javax.swing.text.Highlighter;
-import javax.swing.text.Highlighter.HighlightPainter;
-
 import org.elasticsearch.common.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
+import com.drkiet.ireader.handler.BookHandler;
+import com.drkiet.ireader.handler.ReaderListener;
 import com.drkiettran.text.ReadingTextManager;
-import com.drkiettran.text.model.Document;
 import com.drkiettran.text.model.Page;
 import com.drkiettran.text.model.SearchResult;
-import com.drkiettran.text.model.Word;
 
 public class TextPanel extends JPanel {
 	private static final Logger LOGGER = LoggerFactory.getLogger(TextPanel.class);
@@ -51,538 +36,273 @@ public class TextPanel extends JPanel {
 	public static final int LARGEST_TEXT_AREA_FONT_SIZE = 32;
 	public static final long serialVersionUID = -825536523977292110L;
 
-	private JTextArea textArea;
+	private ContentTextPane textPane;
 	private JLabel displayingWordLabel;
 	private String readingText = null;
 	private JLabel infoLabel;
-	private JLabel titleLabel;
-
-//	private ReferencesFrame referencesFrame = new ReferencesFrame();
-//	private DefinitionFrame definitionFrame = new DefinitionFrame();
-
-	private List<Object> highlightedWords = new ArrayList<Object>();
-	private Object highlightSelectedWord = null;
-	private Object highlightedWord = null;
-
-	private ReaderListener readerListener;
-
-	private String displayingFontName = "Candara";
-	private String infoFontName = "Candara";
+	private String htmlFontName = "Candara";
 	private int displayingWordFontSize = DEFAULT_DISPLAYING_FONT_SIZE;
-	private int infoFontSize = 12;
-	private String textAreaFontName = "Candara";
-	private int textAreaFontSize = DEFAULT_TEXT_AREA_FONT_SIZE;
-	private int defaultBlinkRate = 0;
-
-	private Document document = null;
-	private ReadingTextManager readingTextManager = null;
-	private boolean doneReading = true;
-	private Word selectedWord = null;
-	private Word wordAtMousePos = null;
-	private SearchResult searchResult = null;
+	private ReadingTextManager rtm = null;
 	private String searchText;
-	private List<String> currentTextAreaByLines = null;
-	private int currentLineNumber;
-	private String highlightedText;
-
-	private InfoPanel infoPanel;
-
-	public boolean isDoneReading() {
-		return doneReading;
-	}
-
-	private void resetState() {
-		document = null;
-		readingText = null;
-		doneReading = true;
-		selectedWord = null;
-		wordAtMousePos = null;
-		searchResult = null;
-		searchText = null;
-		currentTextAreaByLines = null;
-		currentLineNumber = 0;
-		infoLabel.setText(null);
-		displayingWordLabel.setText(null);
-	}
-
-	public TextPanel() {
-		arrangeFixedComponents();
-		setBorder("Reader");
-		arrangeLayout();
-		setObjectLinks();
-	}
-
-	private void setObjectLinks() {
-//		definitionFrame.setReferencesFrame(referencesFrame);
-//		referencesFrame.setDefinitionFrame(definitionFrame);
-//		definitionFrame.setInfoPanel(infoPanel);
-	}
-
-	private void arrangeFixedComponents() {
-		displayingWordLabel = new JLabel();
-		displayingWordLabel.setFont(new Font(displayingFontName, Font.PLAIN, displayingWordFontSize));
-		displayingWordLabel.setHorizontalAlignment(JLabel.CENTER);
-		textArea = new JTextArea();
-		infoLabel = new JLabel("");
-		infoLabel.setFont(new Font(infoFontName, Font.PLAIN, infoFontSize));
-		titleLabel = new JLabel("Title:");
-	}
-
-	private void arrangeLayout() {
-		setLayout(new BorderLayout());
-		add(displayingWordLabel, BorderLayout.NORTH);
-		addWelcomePane();
-		add(titleLabel, BorderLayout.SOUTH);
-		add(infoLabel, BorderLayout.SOUTH);
-
-	}
-
-	private void addWelcomePane() {
-		removeComponentOnCenterLayout();
-		JTextPane textPane = new JTextPane();
-		textPane.setFont(new Font("Candara", Font.PLAIN, 12));
-		textPane.setContentType("text/html");
-		textPane.setForeground(Color.GREEN);
-		textPane.setBackground(new Color(245, 245, 245));
-
-//		textPane.setText(FileHelper.loadTextFileIntoString("/About.html"));
-
-		add(textPane, BorderLayout.CENTER);
-	}
-
-	public void removeComponentOnCenterLayout() {
-		BorderLayout layout = (BorderLayout) getLayout();
-		Component comp = layout.getLayoutComponent(BorderLayout.CENTER);
-		if (comp != null) {
-			remove(comp);
-		}
-	}
-
-	private void addTextPane() {
-		removeComponentOnCenterLayout();
-		makeTextArea();
-		add(new JScrollPane(textArea), BorderLayout.CENTER);
-	}
-
-	private void setBorder(String bookName) {
-		Border innerBorder = BorderFactory.createTitledBorder(bookName);
-		Border outterBorder = BorderFactory.createEmptyBorder(5, 5, 5, 5);
-		setBorder(BorderFactory.createCompoundBorder(outterBorder, innerBorder));
-	}
-
-	private void makeTextArea() {
-		defaultBlinkRate = textArea.getCaret().getBlinkRate();
-		textArea.setCaretPosition(0);
-		textArea.setCaretColor(Color.white);
-		textArea.setFont(new Font(textAreaFontName, Font.PLAIN, textAreaFontSize));
-		textArea.setLineWrap(true);
-		textArea.setWrapStyleWord(true);
-		textArea.setEditable(false);
-
-		textArea.getDocument().addDocumentListener(new DocumentListener() {
-
-			@Override
-			public void insertUpdate(DocumentEvent e) {
-//				readerListener.invoke(Command.RESTART);
-			}
-
-			@Override
-			public void removeUpdate(DocumentEvent e) {
-//				readerListener.invoke(Command.RESTART);
-			}
-
-			@Override
-			public void changedUpdate(DocumentEvent e) {
-//				readerListener.invoke(Command.RESTART);
-			}
-
-		});
-
-		textArea.addMouseMotionListener(getMouseMotionListener());
-		textArea.addMouseListener(getMouseListner());
-
-	}
-
-	private MouseListener getMouseListner() {
-
-		return new MouseListener() {
-
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				SwingUtilities.isLeftMouseButton(e);
-				SwingUtilities.isRightMouseButton(e);
-				SwingUtilities.isMiddleMouseButton(e);
-				if (readingTextManager != null) {
-					int caretPos = textArea.getCaretPosition();
-					selectedWord = readingTextManager.getWordAt(textArea.getCaretPosition());
-					if (SwingUtilities.isRightMouseButton(e)) {
-						displayDefinitions(selectedWord.getTransformedWord().replaceAll("'", ""));
-					}
-					try {
-						highlightSelectedWord = highlight(selectedWord.getTransformedWord(),
-								selectedWord.getIndexOfText(), Color.GRAY, highlightSelectedWord);
-					} catch (BadLocationException e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
-					}
-					search(selectedWord.getTransformedWord().replaceAll("'", ""));
-					textArea.setCaretPosition(caretPos);
-				}
-			}
-
-			@Override
-			public void mousePressed(MouseEvent event) {
-			}
-
-			@Override
-			public void mouseReleased(MouseEvent e) {
-				if (textArea.getSelectedText() != null) { // See if they selected something
-					highlightedText = textArea.getSelectedText().trim();
-					displayReferences(highlightedText);
-				}
-			}
-
-			@Override
-			public void mouseEntered(MouseEvent e) {
-
-			}
-
-			@Override
-			public void mouseExited(MouseEvent e) {
-				wordAtMousePos = null;
-			}
-		};
-	}
-
-	private MouseMotionListener getMouseMotionListener() {
-		return new MouseMotionListener() {
-			@Override
-			public void mouseMoved(MouseEvent event) {
-				processToolTip(event);
-			}
-
-			@Override
-			public void mouseDragged(MouseEvent event) {
-			}
-		};
-
-	}
-
-	public boolean mouseOverWord(int caretPos) {
-		return caretPos >= wordAtMousePos.getIndexOfText()
-				&& caretPos <= wordAtMousePos.getIndexOfText() + wordAtMousePos.getTransformedWord().length();
-	}
-
-	public void processToolTip(MouseEvent event) {
-		int viewToModel = textArea.viewToModel(event.getPoint());
-		if (viewToModel != -1) {
-			try {
-				String labelText = infoLabel.getText();
-				int idx = labelText.indexOf(LINE_INFO);
-				if (idx >= 0) {
-					labelText = labelText.substring(0, idx);
-				}
-				infoLabel.setText(labelText + LINE_INFO + (1 + textArea.getLineOfOffset(viewToModel)));
-				textArea.setCaretPosition(textArea.viewToModel(event.getPoint()));
-
-				String curWord = "--";
-				int caretPos = textArea.getCaretPosition();
-
-				if (readingTextManager != null) {
-					wordAtMousePos = readingTextManager.getWordAt(textArea.getCaretPosition());
-					if (wordAtMousePos != null && mouseOverWord(caretPos)) {
-						curWord = wordAtMousePos.getTransformedWord();
-						SearchResult sr = readingTextManager.search(curWord);
-						String tip = String.format("<html><p><font color=\"#800080\" "
-								+ "size=\"4\" face=\"Verdana\">%d '%s's found" + "</font></p></html>",
-								sr.getNumberMatchedWords(), curWord);
-						textArea.setToolTipText(tip);
-					}
-				}
-
-				// LOGGER.debug("{}. caret: {}; word: {}", getCurrentLineNumber(),
-				// textArea.getCaretPosition(), curWord);
-				repaint();
-			} catch (BadLocationException e1) {
-				e1.printStackTrace();
-			}
-		}
-
-	}
-
-	private int getCurrentLineNumber() {
-		try {
-			return textArea.getLineOfOffset(textArea.getCaretPosition()) + 1;
-		} catch (BadLocationException e) {
-			LOGGER.info("Bad Location Exception: " + e);
-		}
-		return -1;
-	}
-
-	private String getCurrentLineText(int currentLineNumber) {
-		if (currentLineNumber <= currentTextAreaByLines.size() - 1) {
-			return currentTextAreaByLines.get(currentLineNumber);
-		} else {
-			return currentTextAreaByLines.get(currentTextAreaByLines.size() - 1);
-		}
-	}
-
-	private void displayDefinitions(String word) {
-//		definitionFrame.setTitle(
-//				String.format("Document: %s %d", document.getBookFileName(), document.getCurrentPageNumber()));
-//		definitionFrame.setDefinition(word);
-	}
-
-	public void displayReferences(String referenceText) {
-//		definitionFrame.setTitle(
-//				String.format("Document: %s %d", document.getBookFileName(), document.getCurrentPageNumber()));
-//		referencesFrame.setText(referenceText);
-	}
-
-	public void updateInfoLabel() {
-		String labelText = infoLabel.getText();
-		int idx = labelText.indexOf(LINE_INFO);
-		String cursorInfo;
-
-		if (idx >= 0) {
-			labelText = labelText.substring(0, idx);
-		}
-
-		if (document != null) {
-			cursorInfo = String.format("%s %d", LINE_INFO, document.getCurrentPageNumber());
-		} else {
-			cursorInfo = LINE_INFO;
-		}
-
-		infoLabel.setText(labelText + cursorInfo);
-		LOGGER.info("line {}: {}", currentLineNumber, getCurrentLineText(currentLineNumber));
-	}
-
-	public void resetReading() {
-		LOGGER.info("Reset reading ...");
-		addWelcomePane();
-		resetState();
-		repaint();
-	}
-
 	public String[] THE_ARTICLES = { "the", "an", "a" };
 	public List<String> ARTICLES = Arrays.asList(THE_ARTICLES);
+	private BookHandler bookHandler;
 
-	private boolean skipArticle;
+	private boolean isReading = false;
 
-	public void skipArticle(boolean skipArticle) {
-		this.skipArticle = skipArticle;
+	private TextTimerTask textTimerTask = null;
+	private Timer timer = null;
+
+	private int speedWpm;
+
+	/**
+	 * Construct a Text Panel that includes labels Top, Bottom and text pane in the
+	 * middle for displaying reading text
+	 * 
+	 */
+	public TextPanel() {
+		arrangeFixedComponents();
+		setBorder();
+		arrangeLayout();
 	}
 
-	public void nextWord() throws BadLocationException {
-		String wordToRead = getNextWord();
-
-		if (wordToRead == null) {
-			doneReading = true;
-			return;
-		}
-		wordToRead = wordToRead.trim();
-
-		if (skipArticle && ARTICLES.contains(wordToRead.toLowerCase())) {
-			wordToRead = getNextWord();
-		}
-
-		LOGGER.info("wordtoread: {}", wordToRead);
-		if (wordToRead != null) {
-			if (wordToRead.isEmpty()) {
-				return;
-			}
-
-			highlightedWord = highlight(wordToRead, readingTextManager.getCurrentCaret(), Color.PINK, highlightedWord);
-			textArea.requestFocus();
-			displayingWordLabel.setText(wordToRead);
-			displayReadingInformation();
-		} else {
-			displayReadingInformation();
-			doneReading = true;
-		}
-		repaint();
+	/**
+	 * Assign a BookHandler object.
+	 * 
+	 * @param bookHandler
+	 */
+	public void setBookHandler(BookHandler bookHandler) {
+		LOGGER.info("Displaying {}", bookHandler.getBookName());
+		this.bookHandler = bookHandler;
+		rtm = bookHandler.getReadTextManager();
+		displayText(rtm);
 	}
 
-	public void displayText() {
-		currentTextAreaByLines = Arrays.asList(readingTextManager.getReadingText().split("\n"));
-		textArea.setText(readingTextManager.getReadingText());
+	/**
+	 * Set reading speed word per minute.
+	 * 
+	 * @param speedWpm
+	 */
+	public void setSpeed(Integer speedWpm) {
+		this.speedWpm = speedWpm;
 	}
 
-	private Object highlight(String wordToRead, int caret, Color color, Object highlightedWord)
-			throws BadLocationException {
-		textArea.setCaretPosition(caret);
-		Highlighter hl = textArea.getHighlighter();
-		HighlightPainter painter = new DefaultHighlighter.DefaultHighlightPainter(color);
-		int p0 = textArea.getCaretPosition();
-		int p1 = p0 + wordToRead.length();
-		if (highlightedWord != null) {
-			hl.removeHighlight(highlightedWord);
-		}
-		return hl.addHighlight(p0, p1, painter);
-	}
-
-	private void unHighlight(Object highlightedWord) {
-		textArea.getHighlighter().removeHighlight(highlightedWord);
-	}
-
-	private void displayReadingInformation() {
-		int wordsFromBeginning = readingTextManager.getWordsFromBeginning();
-		int totalWords = readingTextManager.getTotalWords();
-		int readingPercentage = 0;
-
-		if (totalWords != 0) {
-			readingPercentage = (100 * wordsFromBeginning) / totalWords;
-		}
-
-		String docInfo = "";
-		if (document != null) {
-			docInfo = String.format("Page %d of %d", document.getCurrentPageNumber(), document.getPageCount());
-		}
-
-		infoLabel.setText(
-				String.format("%s: %d of %d words (%d%%)", docInfo, wordsFromBeginning, totalWords, readingPercentage));
-		infoLabel.setForeground(Color.BLUE);
-	}
-
-	private void displaySearchResult() {
-		infoLabel.setText(String.format("found %d '%s's", searchResult.getNumberMatchedWords(), searchText));
-		infoLabel.setForeground(Color.BLUE);
-	}
-
-	private String getNextWord() {
-		return readingTextManager.getNextWord();
-	}
-
+	/**
+	 * Set command listner.
+	 * 
+	 * @param readerListener
+	 */
 	public void setReaderListener(ReaderListener readerListener) {
-		this.readerListener = readerListener;
+		LOGGER.info("Set listener ...");
+		textPane.setListener(readerListener);
 	}
 
+	/**
+	 * Pause/Unpause speed reader.
+	 * 
+	 */
+	public void pauseReading() {
+		textPane.pauseReading();
+	}
+
+	/**
+	 * Stop speed reader.
+	 * 
+	 */
 	public void stopReading() {
-		textArea.setCaret(new DefaultCaret());
-		textArea.getCaret().setBlinkRate(defaultBlinkRate);
-		textArea.setCaretPosition(readingTextManager.getCurrentCaret());
-		textArea.requestFocus();
-		this.doneReading = false;
+		if (textTimerTask != null) {
+			timer.cancel();
+			textTimerTask.cancel();
+			timer = null;
+			textTimerTask = null;
+		}
+		isReading = false;
+		textPane.stopReading();
 	}
 
-	public void startReading() {
-		if (document == null) {
-			return;
-		}
-
-//		textArea.setCaret(new FancyCaret());
-
-		if (document != null && readingTextManager == null) {
-			displayPageText(document.getCurrentPage());
-		}
-
-		if (readingTextManager != null) {
-			textArea.setCaretPosition(readingTextManager.getCurrentCaret());
-		} else {
-			textArea.setCaretPosition(0);
-		}
-
-		doneReading = false;
-		textArea.requestFocus();
-	}
-
-	public void setCurrentCaretAt() {
-		if (readingTextManager != null) {
-			readingTextManager.setCurrentCaret(textArea.getCaretPosition());
+	/**
+	 * Start a speed reader with word per minute value.
+	 * 
+	 * @param speedWpm
+	 */
+	public void startReading(int speedWpm) {
+		if (!isReading && rtm != null) {
+			this.speedWpm = speedWpm;
+			LOGGER.info("Start reading ... {} wpm", speedWpm);
+			textPane.startReading(speedWpm);
+			startTimer(speedWpm);
 		}
 	}
 
-	public void search(String searchText) {
-		if (readingTextManager == null) {
-			return;
+	public void startReadingAt(int speedWpm) {
+		if (!isReading && rtm != null) {
+			this.speedWpm = speedWpm;
+			LOGGER.info("Start reading at ... {} wpm", speedWpm);
+			textPane.startReadingAt(speedWpm);
+			startTimer(speedWpm);
 		}
-
-		for (Object highlightedWord : highlightedWords) {
-			unHighlight(highlightedWord);
-		}
-
-		this.searchText = searchText;
-		this.searchResult = readingTextManager.search(searchText);
-		Hashtable<Integer, String> matchedWords = searchResult.getMatchedWords();
-		highlightedWords = new ArrayList<Object>();
-
-		for (Integer idx : matchedWords.keySet()) {
-			try {
-				LOGGER.debug("highlighted at /{}/", matchedWords.get(idx));
-				highlightedWords.add(highlight(matchedWords.get(idx), idx, Color.GREEN, null));
-			} catch (BadLocationException e) {
-				LOGGER.error("Bad location exception: {}", e);
-			}
-		}
-		displaySearchResult();
-//		referencesFrame.setText(searchText);
-//		definitionFrame.setDefinition(searchText);
 	}
 
-	public void setInfo(String info) {
+	/**
+	 * Check of speed reader completes the page.
+	 * 
+	 * @return
+	 */
+	public boolean isDoneReading() {
+		return textPane.isDoneReading();
+	}
 
-		if (readingTextManager != null) {
-			infoLabel.setText(info);
-			infoLabel.setForeground(Color.BLUE);
-			textArea.setCaretPosition(readingTextManager.getCurrentCaret());
-			textArea.requestFocus();
-		} else {
-			infoLabel.setText("Start reading first!");
-			infoLabel.setForeground(Color.RED);
-		}
+	/**
+	 * Skip/unskip articles by speed reader.
+	 * 
+	 * @param skipArticle
+	 */
+	public void skipArticle(boolean skipArticle) {
+	}
+
+	/**
+	 * Read current word.
+	 */
+	public void readWord() {
+		textPane.readWord();
+		displayingWordLabel.setText(textPane.getWordToRead());
 		repaint();
 	}
 
-	public void startReadingAt() {
-		if (document != null && readingTextManager != null) {
-			readingTextManager.setCurrentCaret(selectedWord.getIndexOfText());
-			startReading();
+	/**
+	 * Display text with new reading text manager.
+	 * 
+	 * @param rtm
+	 */
+	public void displayText(ReadingTextManager rtm) {
+		this.rtm = rtm;
+		if (rtm != null) {
+			textPane.displayText(rtm);
+			updateInfoLabel();
 		}
 	}
 
-	public void loadTextFromFile(Document document) {
-		this.document = document;
-		setBorder((String) document.getBookFileName());
-		addTextPane();
-		displayPageText(document.getCurrentPage());
+	/**
+	 * Search text on page, on the entire book.
+	 * 
+	 * @param searchText
+	 * @return
+	 */
+	public String search(String searchText) {
+		this.searchText = searchText;
+		StringBuilder searchResult = new StringBuilder("Search result: <br>Current Page #: ");
+		searchResult.append(bookHandler.getCurrentPage().getPageNumber());
+		searchResult.append("<br>");
+		searchResult.append(textPane.search(searchText));
+		searchResult.append(searchBook(searchText));
+		return searchResult.toString();
 	}
 
 	public void previousPage() {
-		if (document != null) {
-			Page page = document.previousPage();
-			if (page != null) {
-				displayPageText(page);
-			}
+		stopReading();
+		Page page = bookHandler.previousPage();
+		if (page != null) {
+			displayPageText(page);
 		}
 	}
 
 	public void nextPage() {
-		if (document != null) {
-			Page page = document.nextPage();
-			if (page != null) {
-				displayPageText(page);
-			}
+		stopReading();
+		Page page = bookHandler.nextPage();
+		if (page != null) {
+			displayPageText(page);
 		}
 	}
 
-	public void displayPageText(Page page) {
-		readingTextManager = page.getRtm();
+	/**
+	 * Start Timer task.
+	 * 
+	 * @param speedWpm
+	 */
+	private void startTimer(int speedWpm) {
+		textTimerTask = new TextTimerTask();
+		textTimerTask.register(this);
+		timer = new Timer();
+		timer.schedule(textTimerTask, 0, (60 * 1000) / speedWpm);
+		isReading = true;
+	}
 
-		readingText = readingTextManager.getReadingText();
+	private void arrangeFixedComponents() {
+		displayingWordLabel = new JLabel();
+		displayingWordLabel.setFont(new Font(htmlFontName, Font.PLAIN, displayingWordFontSize));
+		displayingWordLabel.setHorizontalAlignment(JLabel.CENTER);
 
-		if (emptyReadingText()) {
-			textArea.setText("*** PAGE IS EMPTY! ***");
-		} else {
-			displayText();
+		infoLabel = new JLabel();
+		infoLabel.setFont(new Font("Candara", Font.PLAIN, 14));
+		infoLabel.setForeground(Color.BLUE);
+		textPane = new ContentTextPane(rtm);
+	}
+
+	private void arrangeLayout() {
+		setLayout(new BorderLayout());
+		add(new JScrollPane(textPane), BorderLayout.CENTER);
+		add(displayingWordLabel, BorderLayout.NORTH);
+		add(infoLabel, BorderLayout.SOUTH);
+	}
+
+	private void setBorder() {
+		Border innerBorder = BorderFactory.createTitledBorder("Reader");
+		Border outterBorder = BorderFactory.createEmptyBorder(5, 5, 5, 5);
+		setBorder(BorderFactory.createCompoundBorder(outterBorder, innerBorder));
+	}
+
+	private void updateInfoLabel() {
+		int mins2Read = rtm.getTotalWords() / speedWpm + 1;
+		String info = String.format("File: %s - Page: %d of %d - Words: %d (< %d minutes)", bookHandler.getBookName(),
+				bookHandler.getCurrentPage().getPageNumber(), bookHandler.getPageCount(), rtm.getTotalWords(),
+				mins2Read);
+		infoLabel.setText(info);
+	}
+
+	private String searchBook(String searchText) {
+		StringBuilder sb = new StringBuilder("<br><b>Book Result</b>: <br>");
+		int curPageNum = bookHandler.getCurrentPageNumber();
+
+		for (int pageNumber = 1; pageNumber <= bookHandler.getPageCount(); pageNumber++) {
+			bookHandler.setPageNo(pageNumber);
+			ReadingTextManager rtm = bookHandler.getCurrentPage().getRtm();
+			List<Integer> indices = new ArrayList<Integer>();
+
+			for (String searchWord : searchText.toLowerCase().split(" ")) {
+				for (int index = 0; index < rtm.getTotalWords(); index++) {
+					if (rtm.getWords().get(index).getOriginalWord().toLowerCase().contains(searchWord)) {
+						indices.add(index);
+					}
+				}
+			}
+			if (!indices.isEmpty()) {
+				sb.append("<br>Page #: ").append(pageNumber).append("<br>");
+				for (Integer index : indices) {
+					sb.append(rtm.getWords().get(index).getOriginalWord()).append(' ');
+				}
+			}
 		}
 
-		textArea.setCaretPosition(0);
-		displayReadingInformation();
+		bookHandler.setPageNo(curPageNum);
+		return sb.toString();
+	}
+
+	private void displayPageText(Page page) {
+		rtm = page.getRtm();
+
+		readingText = rtm.getReadingText();
+
+		if (emptyReadingText()) {
+			textPane.setText("*** PAGE IS EMPTY! ***");
+		} else {
+			displayText(rtm);
+		}
 
 		if (!Strings.isNullOrEmpty(searchText)) {
 			search(searchText);
 		}
+
+		updateInfoLabel();
 		repaint();
 	}
 
@@ -596,52 +316,16 @@ public class TextPanel extends JPanel {
 	}
 
 	public void goTo(int gotoPageNo) {
-		if (document != null) {
-			document.setPageNo(gotoPageNo);
-			displayPageText(document.getCurrentPage());
-		}
+		bookHandler.setPageNo(gotoPageNo);
+		displayPageText(bookHandler.getCurrentPage());
 	}
 
-	public void setLargerTextFont() {
-		if (textAreaFontSize < LARGEST_TEXT_AREA_FONT_SIZE) {
-			this.textAreaFontSize++;
-		}
-		textArea.setFont(new Font(textAreaFontName, Font.PLAIN, textAreaFontSize));
-		repaint();
+	public String getHighlightedText() {
+		return textPane.getHighlightedText();
 	}
 
-	public void setSmallerTextFont() {
-		if (textAreaFontSize > SMALLEST_TEXT_AREA_FONT_SIZE) {
-			this.textAreaFontSize--;
-		}
-		textArea.setFont(new Font(textAreaFontName, Font.PLAIN, textAreaFontSize));
-		repaint();
+	public String getWordAtCaret() {
+		return textPane.getWordAtCaret();
 	}
 
-	public void setLargerWordFont() {
-		if (displayingWordFontSize < LARGEST_DISPLAYING_FONT_SIZE) {
-			this.displayingWordFontSize++;
-		}
-		displayingWordLabel.setFont(new Font(displayingFontName, Font.PLAIN, displayingWordFontSize));
-		repaint();
-	}
-
-	public void setSmallerWordFont() {
-		if (displayingWordFontSize > SMALLEST_DISPLAYING_FONT_SIZE) {
-			this.displayingWordFontSize--;
-		}
-		displayingWordLabel.setFont(new Font(displayingFontName, Font.PLAIN, displayingWordFontSize));
-		repaint();
-	}
-
-	public void setInfoPanel(InfoPanel infoPanel) {
-		this.infoPanel = infoPanel;
-	}
-
-	public void setMainFrame(MainFrame mainFrame) {
-	}
-
-	public void setRefBook(String refName) {
-//		referencesFrame.setRefBook(refName);
-	}
 }

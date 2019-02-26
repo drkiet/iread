@@ -3,11 +3,8 @@ package com.drkiet.ireader.main;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.event.ActionEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.io.IOException;
 
-import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
@@ -19,9 +16,11 @@ import javax.swing.UIManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.drkiet.ireader.handler.DictionaryHandler;
+import com.drkiet.ireader.handler.Navigator;
+import com.drkiet.ireader.handler.ReaderListener.Command;
+import com.drkiet.ireader.handler.SettingsHandler;
 import com.drkiet.ireader.handler.TextHandler;
-import com.drkiet.ireader.main.ReaderListener.Command;
-import com.drkiet.ireader.main.handler.SettingsHandler;
 import com.drkiet.ireader.util.FileHelper;
 
 public class MainFrame extends JFrame {
@@ -31,11 +30,12 @@ public class MainFrame extends JFrame {
 	private TextPanel textPanel = new TextPanel();
 	private Toolbar toolbar = new Toolbar();
 	private FormPanel formPanel = new FormPanel();
-	private JFileChooser fileChooser = new JFileChooser();
-	private InfoPanel infoPanel = new InfoPanel();
+	private LoggingPanel loggingPanel = new LoggingPanel();
 	private JMenuBar menubar = new JMenuBar();
-	private SettingsHandler sh = new SettingsHandler();
-	private TextHandler th = new TextHandler();
+	private SettingsHandler settingsHandler = null;
+	private TextHandler textHandler = null;
+	private Navigator navigator;
+	private DictionaryHandler dictionaryHandler;
 
 	public MainFrame() throws IOException {
 		super("Intelligent Reader");
@@ -43,6 +43,7 @@ public class MainFrame extends JFrame {
 		manageMenubar();
 		manageListeners();
 		manageLayout();
+		textPanel.setSpeed(formPanel.getSpeedWpm());
 	}
 
 	private void manageMenubar() {
@@ -62,35 +63,93 @@ public class MainFrame extends JFrame {
 	}
 
 	public void manageListeners() {
+		textHandler = new TextHandler(textPanel, loggingPanel);
+		settingsHandler = new SettingsHandler(formPanel, loggingPanel);
+		dictionaryHandler = new DictionaryHandler(loggingPanel);
+
+		navigator = new Navigator(textPanel, formPanel.getSpeedWpm());
+
 		formPanel.setReaderListener((Command cmd) -> {
-			sh.processForm(formPanel, cmd);
+			settingsHandler.processForm(cmd);
+			processSettings(cmd);
 		});
 
 		textPanel.setReaderListener((Command cmd) -> {
-			th.processText(textPanel, cmd);
+			textHandler.processText(cmd);
+			processText(cmd);
 		});
-//
-//		textPanel.setMainFrame(this);
-//		textPanel.addMouseListener(new MouseAdapter() {
-//			@Override
-//			public void mouseClicked(MouseEvent e) {
-//				processMouseClickedInTextPanel();
-//			}
-//
-//		});
-//
-//		toolbar.setReaderListener((Command cmd) -> {
-//			processButtonsOnToolbar(cmd);
-//		});
+
+		toolbar.setReaderListener((Command cmd) -> {
+			navigator.processToolbar(cmd);
+		});
 	}
 
-	public void manageLayout() {
+	private void processText(Command cmd) {
+		switch (cmd) {
+		case POPUP_SEARCH:
+			if (textHandler.getSearchText() != null) {
+				settingsHandler.setSearchText(textHandler.getSearchText());
+			}
+			break;
+		case GET_DEFINITION:
+			if (textHandler.getSearchText() != null) {
+				dictionaryHandler.getDefinition(textHandler.getSearchText());
+			}
+			break;
+		default:
+			break;
+		}
+	}
+
+	private void processSettings(Command cmd) {
+		switch (cmd) {
+		case OPEN_SELECTED_BOOK:
+			openSelectedBook();
+			break;
+
+		case OPEN_SELECTED_REFERENCE:
+			textHandler.setRefenceHandler(settingsHandler.getReferenceHandler());
+			settingsHandler.getReferenceHandler().setDictionaryHandler(dictionaryHandler);
+			break;
+
+		case GOTO_PAGE:
+			gotoPage();
+			break;
+
+		case SEARCH:
+			search();
+			break;
+
+		case SEARCH_NEXT:
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	private void openSelectedBook() {
+		textPanel.setBookHandler(settingsHandler.getBookHandler());
+	}
+
+	private void gotoPage() {
+		textHandler.gotoPage(formPanel.getSelectedPageNumber());
+	}
+
+	private void search() {
+		textHandler.searchText(settingsHandler.getSearchText());
+		if (settingsHandler.getReferenceHandler() != null) {
+			settingsHandler.getReferenceHandler().searchText(settingsHandler.getSearchText());
+		}
+	}
+
+	private void manageLayout() {
 		LOGGER.info("Managing Layout");
 		setLayout(new BorderLayout());
 		add(formPanel, BorderLayout.WEST);
 		add(toolbar, BorderLayout.NORTH);
 		add(textPanel, BorderLayout.CENTER);
-		add(infoPanel, BorderLayout.SOUTH);
+		add(loggingPanel, BorderLayout.SOUTH);
 
 		setSize(800, 700);
 		setLocationRelativeTo(null);
