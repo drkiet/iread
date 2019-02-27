@@ -36,7 +36,7 @@ public class DictionaryPanel extends JPanel {
 	public static final String FONT_END = "</font>";
 
 	private String definition = null;
-	private Integer textPaneFontSize = 4;
+	private Integer textPaneFontSize = 5;
 	private String textPaneFont = "Candara";
 	private String highlightedText = "";
 
@@ -57,6 +57,7 @@ public class DictionaryPanel extends JPanel {
 	}
 
 	public void displayDefinition() {
+		LOGGER.info("RAW:\n{}", definition);
 		StringBuilder sb = new StringBuilder("<html>");
 		sb.append(String.format(FONT_BEGIN, textPaneFontSize, textPaneFont));
 		sb.append(definition);

@@ -26,7 +26,7 @@ public class SettingsHandler {
 	private ReferenceHandler refHandler;
 	private String searchText;
 	private LoggingPanel loggingPanel;
-	
+
 	public SettingsHandler(FormPanel formPanel, LoggingPanel loggingPanel) {
 		this.formPanel = formPanel;
 		this.loggingPanel = loggingPanel;
@@ -37,11 +37,13 @@ public class SettingsHandler {
 		case SELECT_BOOK:
 			selectedBookName = formPanel.getSelectedBookName();
 			LOGGER.info("Selected book {}", selectedBookName);
+			loggingPanel.info(selectedBookName + " is selected book.");
 			break;
 
 		case OPEN_SELECTED_BOOK:
 			if (selectedBookName == null) {
 				selectedBookName = formPanel.getSelectedBookName();
+				loggingPanel.info(selectedBookName + " is open.");
 			}
 			openSelectedBook();
 			break;
@@ -49,11 +51,13 @@ public class SettingsHandler {
 		case SELECT_REFERENCE:
 			selectedReference = formPanel.getSelectedReference();
 			LOGGER.info("Selected reference {}", selectedReference);
+			loggingPanel.info(selectedReference + " is selected reference.");
 			break;
 
 		case OPEN_SELECTED_REFERENCE:
-			if (selectedBookName == null) {
-				selectedBookName = formPanel.getSelectedReference();
+			if (selectedReference == null) {
+				selectedReference = formPanel.getSelectedReference();
+				loggingPanel.info(selectedReference + " is referenced.");
 			}
 			openSelectedReference();
 			break;

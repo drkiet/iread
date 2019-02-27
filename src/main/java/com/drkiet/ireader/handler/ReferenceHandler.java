@@ -131,7 +131,7 @@ public class ReferenceHandler {
 				LOGGER.info("{}:{}", pageNumber, count);
 			}
 		}
-		loggingPanel.info(String.format("%s found in %s pages", searchText, foundPageNumbers.size()));
+		loggingPanel.info(String.format("%s found in %s pages of reference book.", searchText, foundPageNumbers.size()));
 		return foundPageNumbers;
 	}
 

@@ -95,15 +95,15 @@ public class WebHelper {
 		return url;
 	}
 
-	private static String makeDefinition(WebDriver driver, String url, String word) {
+	private static String makeDefinition(WebDriver driver, String url, String term) {
 		driver.get(url);
-		String xpath = String.format("//a[contains(%s,'%s')]", TRANSLATED_TEXT, CommonUtils.getLowerSingular(word));
+		String xpath = String.format("//a[contains(%s,'%s')]", TRANSLATED_TEXT, CommonUtils.getLowerSingular(term));
 		List<WebElement> as = driver.findElements(By.xpath(xpath));
 		WebElement matched = null;
 		StringBuilder seeAlso = new StringBuilder();
 
 		for (WebElement a : as) {
-			if (a.getText().equalsIgnoreCase(CommonUtils.getLowerSingular(word))) {
+			if (a.getText().equalsIgnoreCase(CommonUtils.getLowerSingular(term))) {
 				matched = a;
 			} else {
 				seeAlso.append("<a href=\"").append(a.getAttribute("href")).append("\">");
@@ -112,10 +112,11 @@ public class WebHelper {
 			LOGGER.info("found <a>: {}, {}", a.getText(), a.getAttribute("href"));
 		}
 
-		StringBuilder sb = new StringBuilder("<br><br><b>").append(word).append("</b>:<br>");
+		StringBuilder sb = new StringBuilder("<br><br><b>").append(term).append("</b>:<br>");
+		sb.append("<a href=\"" + driver.getCurrentUrl() + "\">" + driver.getCurrentUrl() + "</a><br>");
 
 		if (matched == null) {
-			sb.append("*** no definition ***");
+			sb.append("*** NOT FOUND ***");
 		} else {
 			sb.append("<a href=\"").append(matched.getAttribute("href")).append("\">");
 			sb.append(matched.getAttribute("href")).append("</a>");
@@ -223,36 +224,33 @@ public class WebHelper {
 	private static final String XPATH_SINGLE_BASIC_DEFINITION = "//div[@class='ds-single']";
 	private static final String XPATH_NOT_FOUND_MAIN_TEXT = "//div[@id='MainTxt']";
 
-	public static String getDefinitionForWord(String word) {
+	public static String getDefinitionForWord(String term) {
 		WebDriver driver = new HtmlUnitDriver();
 		driver.get(THE_FREE_DICTIONARY_WEBSITE);
-		driver.findElement(By.xpath(XPATH_SEARCH_TEXT)).sendKeys(word);
+		driver.findElement(By.xpath(XPATH_SEARCH_TEXT)).sendKeys(term);
 		driver.findElement(By.xpath(XPATH_SEARCH_BUTTON)).click();
 		List<WebElement> defElmts = driver.findElements(By.xpath(XPATH_BASIC_DEFINITION));
-		String def = "*** no definition ***";
+		StringBuilder sb = new StringBuilder();
+
+		sb.append("<b>").append(term).append(":</b><br>");
+		sb.append("<a href=\"" + driver.getCurrentUrl() + "\">" + driver.getCurrentUrl() + "</a><br>");
 
 		if (defElmts.isEmpty()) {
 			defElmts = driver.findElements(By.xpath(XPATH_SINGLE_BASIC_DEFINITION));
 			if (!defElmts.isEmpty()) {
-				def = "<a href=\"" + driver.getCurrentUrl() + "\">" + driver.getCurrentUrl() + "</a><br>";
-				def += defElmts.get(0).getText();
+				sb.append(defElmts.get(0).getText());
 			} else {
 				defElmts = driver.findElements(By.xpath(XPATH_NOT_FOUND_MAIN_TEXT));
 				if (!defElmts.isEmpty()) {
-					def = "<a href=\"" + driver.getCurrentUrl() + "\">" + driver.getCurrentUrl() + "</a><br>";
-					def += defElmts.get(0).getText();
+					sb.append(defElmts.get(0).getText());
 				}
 			}
 		} else {
-			def = "<a href=\"" + driver.getCurrentUrl() + "\">" + driver.getCurrentUrl() + "</a><br>";
-			def += defElmts.get(0).getText();
+			sb.append(defElmts.get(0).getText());
 		}
-		def = def.replaceAll("\n", "<br>");
-		def = def.replaceAll("1.", "<br>1.");
-		StringBuilder sb = new StringBuilder(String.format("<b>%s</b>: <br>", word)).append(def);
 
 		closeDriver(driver);
-		return sb.toString();
+		return sb.toString().replaceAll("\n", "<br>").replaceAll("1.", "<br>1.");
 	}
 
 	public static final String IT_DICTIONARY_WEBSITE = "https://www.computer-dictionary-online.org";
@@ -266,16 +264,15 @@ public class WebHelper {
 
 		driver.get(String.format(searchUrl, term.charAt(0), term.toLowerCase()));
 		List<WebElement> defElmts = driver.findElements(By.xpath(IT_DICTIONARY_CONTENT_XPATH));
-		String def = "*** no definition ***";
-		sb.append("<a href=\"").append(driver.getCurrentUrl()).append("\">");
+		sb.append("<b>").append(term).append(":</b><br>");
+		sb.append("<a href=\"" + driver.getCurrentUrl() + "\">" + driver.getCurrentUrl() + "</a><br>");
 
 		if (!defElmts.isEmpty()) {
-			sb.append(driver.getCurrentUrl()).append("</a><br>");
 			for (WebElement defElmt : defElmts) {
 				sb.append(defElmt.getAttribute("innerHTML"));
 			}
 		} else {
-			sb.append(def);
+			sb.append("*** NOT FOUND ***");
 		}
 
 		closeDriver(driver);
@@ -297,17 +294,16 @@ public class WebHelper {
 
 		driver.get(String.format(searchUrl, term.charAt(0), term.toLowerCase()));
 		List<WebElement> defElmts = driver.findElements(By.xpath(FIN_DICTIONARY_CONTENT_XPATH));
-		String def = "*** no definition ***";
-		sb.append("<a href=\"").append(driver.getCurrentUrl()).append("\">");
+		sb.append("<b>").append(term).append(":</b><br>");
+		sb.append("<a href=\"" + driver.getCurrentUrl() + "\">" + driver.getCurrentUrl() + "</a><br>");
 
 		if (!defElmts.isEmpty()) {
-			sb.append(driver.getCurrentUrl()).append("</a><br>");
 			for (WebElement defElmt : defElmts) {
 				LOGGER.info("*** RAW ***\n{}", defElmt.getAttribute("innerHTML"));
 				sb.append(defElmt.getAttribute("innerHTML"));
 			}
 		} else {
-			sb.append(def);
+			sb.append("*** NOT FOUND ***");
 		}
 
 		closeDriver(driver);

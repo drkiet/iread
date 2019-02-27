@@ -14,17 +14,13 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextPane;
 import javax.swing.border.Border;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.SimpleAttributeSet;
-import javax.swing.text.StyledDocument;
-
 import org.apache.commons.lang.time.DateFormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class LoggingPanel extends JPanel {
 	private static final long serialVersionUID = -5647385749461169568L;
-	public final static String HTML_TEMPLATE = "<br><font color=\"%s\" size=\"%d\" face=\"%s\"><p>%s</font>";
+	public final static String HTML_TEMPLATE = "<br><font color=\"%s\" size=\"%d\" face=\"%s\">%s</font>";
 
 	private JLabel fileNameLabel;
 	private JTextPane textPane;
@@ -138,7 +134,7 @@ public class LoggingPanel extends JPanel {
 	}
 
 	public void info(String text) {
-		StringBuilder sb = new StringBuilder("<br>");
+		StringBuilder sb = new StringBuilder();
 		sb.append(DateFormatUtils.format(new Date(), "yyyy-MM-dd HH:mm:ss - "));
 		sb.append(text);
 		displayingText.append(String.format(HTML_TEMPLATE, "BLUE", 4, "Candara", sb.toString()));
