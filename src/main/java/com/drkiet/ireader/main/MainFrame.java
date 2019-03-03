@@ -21,6 +21,7 @@ import com.drkiet.ireader.handler.Navigator;
 import com.drkiet.ireader.handler.ReaderListener.Command;
 import com.drkiet.ireader.handler.SettingsHandler;
 import com.drkiet.ireader.handler.TextHandler;
+import com.drkiet.ireader.handler.UrlHandler;
 import com.drkiet.ireader.util.FileHelper;
 
 public class MainFrame extends JFrame {
@@ -36,6 +37,7 @@ public class MainFrame extends JFrame {
 	private TextHandler textHandler = null;
 	private Navigator navigator;
 	private DictionaryHandler dictionaryHandler;
+	private UrlHandler urlHandler;
 
 	public MainFrame() throws IOException {
 		super("Intelligent Reader");
@@ -66,9 +68,10 @@ public class MainFrame extends JFrame {
 		textHandler = new TextHandler(textPanel, loggingPanel);
 		settingsHandler = new SettingsHandler(formPanel, loggingPanel);
 		dictionaryHandler = new DictionaryHandler(loggingPanel);
-
+		urlHandler = new UrlHandler(loggingPanel);
 		navigator = new Navigator(textPanel, formPanel.getSpeedWpm());
-
+		
+		dictionaryHandler.setUrlHandler(urlHandler);
 		formPanel.setReaderListener((Command cmd) -> {
 			settingsHandler.processForm(cmd);
 			processSettings(cmd);

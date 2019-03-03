@@ -130,11 +130,14 @@ public class WebHelper {
 		return sb.append("<br><br><b>See Also</b>: <br>").append(seeAlso).toString();
 	}
 
-	public static String getWordDefinition(String url, int fontSize, String font) {
+	public static String getUrlContent(String url, int fontSize, String font) {
 		WebDriver driver = new HtmlUnitDriver();
 		driver.get(url);
 		StringBuilder sb = new StringBuilder("<b>").append(url).append("</b><br><br>");
-		return sb.append(getInnerHtml(driver)).toString();
+		sb.append(getInnerHtml(driver));
+		removeContentByTag(sb, "<script", "</script>");
+		removeContentByTag(sb, "//<![CDATA[", "//]]>");
+		return sb.toString();
 	}
 
 	private static String getWordDefinition(WebDriver driver, WebElement matched) {
@@ -262,7 +265,7 @@ public class WebHelper {
 		WebDriver driver = new HtmlUnitDriver();
 		String searchUrl = IT_DICTIONARY_WEBSITE + IT_DICTIONARY_SEARCH_TEMPLATE;
 
-		driver.get(String.format(searchUrl, term.charAt(0), term.toLowerCase()));
+		driver.get(String.format(searchUrl, term.charAt(0), term.replaceAll(" ", "-").toLowerCase()));
 		List<WebElement> defElmts = driver.findElements(By.xpath(IT_DICTIONARY_CONTENT_XPATH));
 		sb.append("<b>").append(term).append(":</b><br>");
 		sb.append("<a href=\"" + driver.getCurrentUrl() + "\">" + driver.getCurrentUrl() + "</a><br>");
@@ -292,7 +295,7 @@ public class WebHelper {
 		WebDriver driver = new HtmlUnitDriver();
 		String searchUrl = FIN_DICTIONARY_WEBSITE + FIN_DICTIONARY_SEARCH_TEMPLATE;
 
-		driver.get(String.format(searchUrl, term.charAt(0), term.toLowerCase()));
+		driver.get(String.format(searchUrl, term.charAt(0), term.replaceAll(" ", "-").toLowerCase()));
 		List<WebElement> defElmts = driver.findElements(By.xpath(FIN_DICTIONARY_CONTENT_XPATH));
 		sb.append("<b>").append(term).append(":</b><br>");
 		sb.append("<a href=\"" + driver.getCurrentUrl() + "\">" + driver.getCurrentUrl() + "</a><br>");
@@ -307,19 +310,19 @@ public class WebHelper {
 		}
 
 		closeDriver(driver);
-		return removeHtmlComments(sb).toString();
+		return removeContentByTag(sb, "<!--", "-->").toString();
 	}
 
-	private static StringBuilder removeHtmlComments(StringBuilder sb) {
+	private static StringBuilder removeContentByTag(StringBuilder sb, String startTag, String endTag) {
 		// <!-- end: comp mntl-sc-block mntl-sc-block-heading -->
-		int startIndex = sb.indexOf("<!--");
+		int startIndex = sb.toString().toLowerCase().indexOf(startTag);
 		while (startIndex > 0) {
-			int endIndex = sb.indexOf("-->");
+			int endIndex = sb.toString().toLowerCase().indexOf(endTag);
 			if (endIndex < 0) {
 				break;
 			}
-			sb.delete(startIndex, endIndex + 3);
-			startIndex = sb.indexOf("<!--", startIndex + 1);
+			sb.delete(startIndex, endIndex + endTag.length());
+			startIndex = sb.toString().toLowerCase().indexOf(startTag, startIndex + 1);
 		}
 		return sb;
 	}

@@ -1,10 +1,22 @@
 package com.drkiet.ireader.handler;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.drkiet.ireader.dictionary.DictionaryFrame;
+import com.drkiet.ireader.handler.ReaderListener.Command;
 import com.drkiet.ireader.main.LoggingPanel;
+import com.drkiet.ireader.util.FileHelper;
 import com.drkiet.ireader.util.WebHelper;
 import com.drkiettran.text.util.CommonUtils;
 
@@ -13,14 +25,56 @@ public class DictionaryHandler {
 	private DictionaryFrame dictionaryFrame;
 	private LoggingPanel loggingPanel;
 	private String[] topics;
+	private UrlHandler urlHandler;
 
 	public DictionaryHandler(LoggingPanel loggingPanel) {
 		this.loggingPanel = loggingPanel;
 		dictionaryFrame = new DictionaryFrame();
-		if (getTopics() != null) {
-			topics = getTopics().split(" ");
+
+		if (FileHelper.getTopics() != null) {
+			topics = FileHelper.getTopics().split(" ");
 		} else {
 			topics = new String[] { "" };
+		}
+
+		for (String topic : topics) {
+			if (topic.equals("cs")) {
+				loadWebopedia();
+			}
+		}
+
+		dictionaryFrame.setReaderListener((Command cmd) -> {
+			switch (cmd) {
+			case GOTO_URL:
+				urlHandler.setUrl(dictionaryFrame.getClickedUrl());
+				break;
+			default:
+				break;
+			}
+		});
+	}
+
+	private HashMap<String, Integer> hash = new HashMap<String, Integer>();
+	private List<String> csTerms = new ArrayList<String>();
+	
+	private void loadWebopedia() {
+ 
+		try (BufferedReader br = new BufferedReader(new FileReader(FileHelper.getWebopediaFileName()))) {
+			String line;
+			int lineIdx = 0;
+			Character lastFirstChar = 'a';
+			
+			while ((line = br.readLine()) != null) {
+				int index = line.indexOf(": ");
+				String term = line.substring(0, index);
+				csTerms.add(line);
+				Character firstChar = Character.toLowerCase(term.charAt(0));
+				hash.put(term.toLowerCase(), lineIdx);
+			}
+		} catch (FileNotFoundException e) {
+			LOGGER.error("*** ERROR *** {}", e);
+		} catch (IOException e) {
+			LOGGER.error("*** ERROR *** {}", e);
 		}
 	}
 
@@ -102,8 +156,8 @@ public class DictionaryHandler {
 		}
 	}
 
-	private String getTopics() {
-		return System.getProperty("ireader.topics");
+	public void setUrlHandler(UrlHandler urlHandler) {
+		this.urlHandler = urlHandler;
 	}
 
 }

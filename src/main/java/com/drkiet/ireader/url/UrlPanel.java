@@ -1,8 +1,11 @@
-package com.drkiet.ireader.dictionary;
+package com.drkiet.ireader.url;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
@@ -10,6 +13,7 @@ import java.util.List;
 import javax.swing.BorderFactory;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JTextPane;
 import javax.swing.border.Border;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Element;
@@ -17,49 +21,32 @@ import javax.swing.text.Element;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.drkiet.ireader.handler.ReaderListener;
-import com.drkiet.ireader.handler.ReaderListener.Command;
-import com.drkiet.ireader.reference.ReferencesPanel;
+import com.drkiet.ireader.util.WebHelper;
 
-public class DictionaryPanel extends JPanel {
-	private static final long serialVersionUID = 8683655130181562963L;
+public class UrlPanel extends JPanel {
+	private static final long serialVersionUID = -7286531138604994466L;
 	public static final String FONT_BEGIN = "<font size=\"%d\" face=\"%s\">";
 	public static final String FONT_END = "</font>";
 
-	private String definition = null;
+	private JTextPane urlPane;
 	private Integer textPaneFontSize = 5;
-	private String textPaneFont = "Candara";
 	private String highlightedText = "";
+	private String urlContent;
+	private String lastUrl = "";
 
-	private Object dictDefinitions;
-	private ContentTermPane contentTermPane;
-	private ReaderListener listener = null;
-	private String clickedUrl = null;
+	public UrlPanel() {
+		urlPane = new JTextPane();
+		urlPane.setCaretPosition(0);
+		urlPane.setCaretColor(Color.WHITE);
+		urlPane.setContentType("text/html");
 
-	public DictionaryPanel() {
-		contentTermPane = new ContentTermPane();
 		setLayout(new BorderLayout());
-		add(new JScrollPane(contentTermPane), BorderLayout.CENTER);
-		contentTermPane.addMouseListener(getMouseListner());
+		add(new JScrollPane(urlPane), BorderLayout.CENTER);
+		urlPane.addMouseListener(getMouseListner());
 		setBorder();
 	}
 
-	public void displayDefinition(String definition) {
-		this.definition = definition;
-		displayDefinition();
-	}
-
-	public void displayDefinition() {
-		LOGGER.info("RAW:\n{}", definition);
-		StringBuilder sb = new StringBuilder("<html>");
-		sb.append(String.format(FONT_BEGIN, textPaneFontSize, textPaneFont));
-		sb.append(definition);
-		sb.append(FONT_END);
-		contentTermPane.setText(sb.toString());
-		contentTermPane.setCaretPosition(0);
-	}
-
-	private static final Logger LOGGER = LoggerFactory.getLogger(DictionaryPanel.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(UrlPanel.class);
 
 	private MouseListener getMouseListner() {
 
@@ -67,14 +54,14 @@ public class DictionaryPanel extends JPanel {
 
 			@Override
 			public void mouseClicked(MouseEvent e) {
-				clickedUrl = null;
+				String clickedUrl = null;
 				List<Element> contentsWithUrls = new ArrayList<Element>();
 
-				for (Element el : contentTermPane.getDocument().getRootElements()) {
+				for (Element el : urlPane.getDocument().getRootElements()) {
 					findContentsWithUrls(el, contentsWithUrls);
 				}
 
-				int caretPos = contentTermPane.getCaretPosition();
+				int caretPos = urlPane.getCaretPosition();
 				Element foundEl = null;
 
 				for (Element el : contentsWithUrls) {
@@ -96,13 +83,26 @@ public class DictionaryPanel extends JPanel {
 					Object attrName = attrs.nextElement();
 					if ("a".equals(attrName.toString())) {
 						String href = foundEl.getAttributes().getAttribute(attrName).toString();
-						clickedUrl = href.substring(href.indexOf("=") + 1);
+						LOGGER.info(">>> FOUND -- {}: {}", attrName, foundEl.getAttributes().getAttribute(attrName));
+						LOGGER.info(">>> FOUND -- {}: {}", attrName, href);
+						clickedUrl = href.substring(href.indexOf("=") + 1).trim().toLowerCase();
 						break;
 					}
 				}
-				LOGGER.info("urlClicked: {}", clickedUrl);
-				listener.invoke(Command.GOTO_URL);
 
+				if (!clickedUrl.startsWith("http")) {
+					if (clickedUrl.startsWith("//")) {
+						clickedUrl = "http:" + clickedUrl;
+						lastUrl = clickedUrl;
+					} else {
+						clickedUrl = lastUrl + clickedUrl;
+					}
+				} else {
+					lastUrl = clickedUrl;
+				}
+				LOGGER.info("urlClicked: {} / lastUrl: {}", clickedUrl, lastUrl);
+				urlContent = WebHelper.getUrlContent(clickedUrl, 5, "Candara");
+				displayUrlContent();
 			}
 
 			private void findContentsWithUrls(Element el, List<Element> contentsWithUrls) {
@@ -130,14 +130,13 @@ public class DictionaryPanel extends JPanel {
 
 			@Override
 			public void mouseReleased(MouseEvent e) {
-				for (Element element : contentTermPane.getDocument().getRootElements()) {
+				for (Element element : urlPane.getDocument().getRootElements()) {
 					printElement(element);
 				}
 
 				try {
-					int len = contentTermPane.getSelectionEnd() - contentTermPane.getSelectionStart();
-					highlightedText = contentTermPane.getDocument().getText(contentTermPane.getSelectionStart(), len)
-							.trim();
+					int len = urlPane.getSelectionEnd() - urlPane.getSelectionStart();
+					highlightedText = urlPane.getDocument().getText(urlPane.getSelectionStart(), len).trim();
 					LOGGER.info("HIGHLIGHTED: {}", highlightedText);
 				} catch (BadLocationException e1) {
 					// TODO Auto-generated catch block
@@ -181,29 +180,27 @@ public class DictionaryPanel extends JPanel {
 		setBorder(BorderFactory.createCompoundBorder(outterBorder, innerBorder));
 	}
 
-	public void setSmallerText() {
-		if (textPaneFontSize > ReferencesPanel.SMALLEST_TEXT_AREA_FONT_SIZE) {
-			this.textPaneFontSize--;
+	public void setUrlContent(String urlContent) {
+		this.urlContent = urlContent;
+		displayUrlContent();
+	}
+
+	private void displayUrlContent() {
+//		LOGGER.info("RAW:\n{}", urlContent);
+		urlPane.setText(urlContent);
+		urlPane.setCaretPosition(0);
+	}
+
+	public void setUrl(String url) {
+		try {
+			URL myUrl = new URL(url);
+			lastUrl = String.format("%s://%s:%d/", myUrl.getProtocol(), myUrl.getHost(), myUrl.getPort());
+		} catch (MalformedURLException e) {
+			LOGGER.error("*** ERROR *** {}", e);
 		}
-		displayDefinition();
-		repaint();
-	}
 
-	public void setLargerText() {
-		if (textPaneFontSize < ReferencesPanel.LARGEST_TEXT_AREA_FONT_SIZE) {
-			this.textPaneFontSize++;
-		}
-		displayDefinition();
-
-		repaint();
-	}
-
-	public void setListener(ReaderListener listener) {
-		this.listener = listener;
-	}
-
-	public String getClickedUrl() {
-		return clickedUrl;
+		urlContent = WebHelper.getUrlContent(url, 5, "Candara");
+		displayUrlContent();
 	}
 
 }

@@ -122,6 +122,14 @@ public class FileHelper {
 		return System.getProperty("ireader.reference");
 	}
 
+	public static String getWebopediaFileName() {
+		return System.getProperty("ireader.webopedia");
+	}
+	
+	public static String getTopics() {
+		return System.getProperty("ireader.topics");
+	}
+
 	public static String getFQFileName(String bookName) {
 		return String.format("%s%s%s", getReferenceFolder(), File.separator, bookName);
 	}

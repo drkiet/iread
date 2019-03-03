@@ -4,6 +4,7 @@ import java.awt.BorderLayout;
 
 import javax.swing.JFrame;
 
+import com.drkiet.ireader.handler.ReaderListener;
 import com.drkiet.ireader.handler.ReaderListener.Command;
 import com.drkiet.ireader.util.ScreenPositions;
 
@@ -13,6 +14,7 @@ public class DictionaryFrame extends JFrame {
 	private DictionaryPanel definitionPanel;
 	private DictionaryToolbarPanel definitionToolbarPanel;
 	private String word = "";
+	private Object listener;
 
 	public DictionaryFrame() {
 		setLayout(new BorderLayout());
@@ -54,6 +56,15 @@ public class DictionaryFrame extends JFrame {
 
 	public void displayDefinition(String definition) {
 		definitionPanel.displayDefinition(definition);
+	}
+
+	public void setReaderListener(ReaderListener listener) {
+		this.listener = listener;
+		definitionPanel.setListener(listener);
+	}
+
+	public String getClickedUrl() {
+		return definitionPanel.getClickedUrl();
 	}
 
 }
