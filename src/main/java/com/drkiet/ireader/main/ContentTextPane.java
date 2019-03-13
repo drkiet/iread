@@ -162,7 +162,12 @@ public class ContentTextPane extends JTextPane {
 			return;
 		}
 
-		wordToRead = getWord();
+		for (;;) {
+			wordToRead = getWord();
+			if (wordToRead == null || !wordToRead.contains("<")) {
+				break;
+			}
+		}
 		LOGGER.info("wordtoread: {}", wordToRead);
 
 		if (wordToRead == null || wordToRead.isEmpty()) {
@@ -201,9 +206,14 @@ public class ContentTextPane extends JTextPane {
 		StringBuilder sb = new StringBuilder();
 
 		for (String searchWord : searchText.toLowerCase().split(" ")) {
+			int counter = 0;
 			for (int index = 0; index < rtm.getTotalWords(); index++) {
-				if (rtm.getWords().get(index).getOriginalWord().toLowerCase().contains(searchWord)) {
-					indices.add(index);
+				String wordText = rtm.getWords().get(index).getOriginalWord().toLowerCase();
+				if (wordText.contains("<")) {
+					continue;
+				}
+				if (wordText.contains(searchWord)) {
+					indices.add(counter++);
 				}
 			}
 		}
@@ -234,10 +244,18 @@ public class ContentTextPane extends JTextPane {
 		setCaretPosition(0);
 		int idx = getCaretPosition();
 		wordPositionsList = new ArrayList<Integer[]>();
+		int textLength = getText().length();
+		System.out.println("textlength: " + textLength);
 
 		for (Word word : rtm.getWords()) {
 			String wordText = word.getOriginalWord().replace("\n", "").replace("\r", "");
-			while (idx < getText().length()) {
+			if (wordText.contains("<")) {
+				continue;
+			}
+
+			System.out.println("*** word: " + wordText);
+
+			while (idx < textLength) {
 				if (getText(idx, wordText.length()).equals(wordText)) {
 					wordPositionsList.add(new Integer[] { idx, wordText.length() });
 					idx += (wordText.length());

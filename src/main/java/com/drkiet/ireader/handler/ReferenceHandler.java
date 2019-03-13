@@ -35,8 +35,7 @@ public class ReferenceHandler {
 	}
 
 	public void openSelectedReference(String selectedReference) {
-		ds = DocumentSearch.getInstance(FileHelper.getFQRefencesFileName(selectedReference),
-				FileHelper.getWorkspaceFolder());
+		ds = DocumentSearch.getInstance(selectedReference, FileHelper.getWorkspaceFolder());
 
 		if (referencesFrame != null) {
 			referencesFrame.dispose();
@@ -131,7 +130,8 @@ public class ReferenceHandler {
 				LOGGER.info("{}:{}", pageNumber, count);
 			}
 		}
-		loggingPanel.info(String.format("%s found in %s pages of reference book.", searchText, foundPageNumbers.size()));
+		loggingPanel
+				.info(String.format("%s found in %s pages of reference book.", searchText, foundPageNumbers.size()));
 		return foundPageNumbers;
 	}
 
