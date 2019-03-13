@@ -1,5 +1,7 @@
 package com.drkiet.ireader.handler;
 
+import java.io.File;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -7,6 +9,7 @@ import com.drkiet.ireader.handler.ReaderListener.Command;
 import com.drkiet.ireader.main.FormPanel;
 import com.drkiet.ireader.main.LoggingPanel;
 import com.drkiet.ireader.reference.ReferencesFrame;
+import com.drkiet.ireader.util.FileHelper;
 import com.drkiet.ireader.util.TextUtil;
 
 /**
@@ -26,6 +29,7 @@ public class SettingsHandler {
 	private ReferenceHandler refHandler;
 	private String searchText;
 	private LoggingPanel loggingPanel;
+	private Integer speedWpm;
 
 	public SettingsHandler(FormPanel formPanel, LoggingPanel loggingPanel) {
 		this.formPanel = formPanel;
@@ -34,8 +38,13 @@ public class SettingsHandler {
 
 	public void processForm(Command cmd) {
 		switch (cmd) {
+		case SET_SPEED_WPM:
+			speedWpm = formPanel.getSpeedWpm();
+			LOGGER.info("Changed speed to {} ...", speedWpm);
+			break;
+
 		case SELECT_BOOK:
-			selectedBookName = formPanel.getSelectedBookName();
+			selectedBookName = getSelectedFileName(formPanel.getSelectedBookName());
 			LOGGER.info("Selected book {}", selectedBookName);
 			loggingPanel.info(selectedBookName + " is selected book.");
 			break;
@@ -49,7 +58,7 @@ public class SettingsHandler {
 			break;
 
 		case SELECT_REFERENCE:
-			selectedReference = formPanel.getSelectedReference();
+			selectedReference = getSelectedFileName(formPanel.getSelectedReference());
 			LOGGER.info("Selected reference {}", selectedReference);
 			loggingPanel.info(selectedReference + " is selected reference.");
 			break;
@@ -72,6 +81,12 @@ public class SettingsHandler {
 		default:
 			break;
 		}
+	}
+
+	private String getSelectedFileName(String fileName) {
+		fileName = FileHelper.getFQContentFileName(fileName);
+		String altFileName = FileHelper.getAltFileName(fileName, ".txt");
+		return (new File(altFileName).exists()) ? altFileName : fileName;
 	}
 
 	private void openSelectedReference() {
@@ -115,5 +130,9 @@ public class SettingsHandler {
 	public void setSearchText(String searchText) {
 		this.formPanel.setSearchText(searchText);
 		this.searchText = searchText;
+	}
+
+	public Integer getSpeedWpm() {
+		return speedWpm;
 	}
 }

@@ -52,4 +52,8 @@ public class Navigator {
 		}
 	}
 
+	public void setSpeedWpm(Integer speedWpm) {
+		this.speedWpm = speedWpm;
+	}
+
 }

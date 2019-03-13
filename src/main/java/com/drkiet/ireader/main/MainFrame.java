@@ -70,7 +70,7 @@ public class MainFrame extends JFrame {
 		dictionaryHandler = new DictionaryHandler(loggingPanel);
 		urlHandler = new UrlHandler(loggingPanel);
 		navigator = new Navigator(textPanel, formPanel.getSpeedWpm());
-		
+
 		dictionaryHandler.setUrlHandler(urlHandler);
 		formPanel.setReaderListener((Command cmd) -> {
 			settingsHandler.processForm(cmd);
@@ -106,6 +106,11 @@ public class MainFrame extends JFrame {
 
 	private void processSettings(Command cmd) {
 		switch (cmd) {
+		case SET_SPEED_WPM:
+			LOGGER.info("Changed speed to {}", settingsHandler.getSpeedWpm());
+			navigator.setSpeedWpm(settingsHandler.getSpeedWpm());
+			break;
+
 		case OPEN_SELECTED_BOOK:
 			openSelectedBook();
 			break;

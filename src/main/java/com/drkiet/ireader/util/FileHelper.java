@@ -125,7 +125,7 @@ public class FileHelper {
 	public static String getWebopediaFileName() {
 		return System.getProperty("ireader.webopedia");
 	}
-	
+
 	public static String getTopics() {
 		return System.getProperty("ireader.topics");
 	}
@@ -171,5 +171,18 @@ public class FileHelper {
 
 	public static String getFQContentFileName(String bookName) {
 		return String.format("%s%s%s", getContentFolder(), File.separator, bookName);
+	}
+
+	public static String getAltFileName(String selectedBookName, String endsWith) {
+		if (!selectedBookName.endsWith(endsWith)) {
+			StringBuilder sb = new StringBuilder();
+			int lastPeriodIdx = selectedBookName.lastIndexOf(".");
+
+			sb.append(selectedBookName.substring(0, lastPeriodIdx));
+			sb.append(endsWith);
+
+			return sb.toString();
+		}
+		return selectedBookName;
 	}
 }

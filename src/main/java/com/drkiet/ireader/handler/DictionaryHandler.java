@@ -37,11 +37,11 @@ public class DictionaryHandler {
 			topics = new String[] { "" };
 		}
 
-		for (String topic : topics) {
-			if (topic.equals("cs")) {
-				loadWebopedia();
-			}
-		}
+//		for (String topic : topics) {
+//			if (topic.equals("cs")) {
+//				loadWebopedia();
+//			}
+//		}
 
 		dictionaryFrame.setReaderListener((Command cmd) -> {
 			switch (cmd) {

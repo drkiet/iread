@@ -38,7 +38,7 @@ public class FormPanel extends JPanel {
 	private JLabel speedLabel;
 	private JTextField speedField;
 	private JButton setSpeedButton;
-	private Integer speedWpm = 200;
+	private Integer speedWpm = 300;
 
 	private JLabel skipArticleLabel;
 	private JCheckBox skipArticleCheckBox;
@@ -54,7 +54,7 @@ public class FormPanel extends JPanel {
 	private JButton gotoButton;
 
 	public Integer getSpeedWpm() {
-		return speedWpm;
+		return Integer.valueOf(this.speedField.getText());
 	}
 
 	public FormPanel() {
@@ -75,7 +75,8 @@ public class FormPanel extends JPanel {
 
 	public void setListeners() {
 		setSpeedButton.addActionListener((ActionEvent actionEvent) -> {
-			speedWpm = Integer.valueOf(speedField.getText());
+			readerListener.invoke(Command.SET_SPEED_WPM);
+
 		});
 
 		booksCombo.addActionListener((ActionEvent actionEvent) -> {
